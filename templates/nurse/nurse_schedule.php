@@ -298,7 +298,7 @@
         });
       }
       var form = document.getElementById('requestForm');
-      var nurseName = <?php echo json_encode($_SESSION['user']['name'] ?? 'Nurse'); ?>;
+      var nurseName = <?php echo json_encode($_SESSION['user']['full_name'] ?? ($_SESSION['user']['name'] ?? 'Nurse')); ?>;
       var nurseId = <?php echo json_encode((int)($_SESSION['user']['id'] ?? 0)); ?>;
       var nurseEmail = <?php echo json_encode($_SESSION['user']['email'] ?? ''); ?>;
       var shiftList = document.getElementById('shiftList');
@@ -424,29 +424,13 @@
         if(shiftEmpty){ shiftEmpty.textContent = 'Loading...'; shiftEmpty.style.display = ''; }
         loadingRequests = true;
         try{
-          var res = await fetch('/capstone/schedules/requests.php', { cache: 'no-store' });
+          var res = await fetch('../../schedules/requests.php', { cache: 'no-store' });
           if(!res.ok) throw new Error('Failed to load requests');
           var data = await res.json();
           var items = Array.isArray(data.items) ? data.items : [];
           console.debug('[nurse_schedule] loaded items:', items);
-          var mine = items.filter(function(it){
-            if(it && typeof it === 'object'){
-              var nid = parseInt(it.nurse_id || 0, 10);
-              var cbid = parseInt(it.created_by_user_id || 0, 10);
-              var itEmail = String(it.nurse_email || '').toLowerCase();
-              var myEmail = String(nurseEmail || '').toLowerCase();
-              var itNurse = String(it.nurse || '');
-              var notes = String(it.notes || '').toLowerCase();
-              if(nurseId && nid === nurseId) return true;
-              if(nurseId && cbid === nurseId) return true;
-              if(itNurse === nurseName) return true;
-              if(itEmail && myEmail && itEmail === myEmail) return true;
-              // Fallback: DB lacking columns, nurse identity stored in notes
-              if(notes.indexOf(('nurse: '+nurseName).toLowerCase()) !== -1) return true;
-              if(myEmail && notes.indexOf(myEmail) !== -1) return true;
-            }
-            return false;
-          });
+          // For now, show all items returned by the API; table may not store nurse identity columns
+          var mine = items;
           // Merge locally stored pending not yet reflected by server
           var localPending = reconcileLocalWithServer(mine);
           var merged = mine.concat(localPending);
@@ -519,7 +503,7 @@
               nurse_email: nurseEmail,
               status: 'pending'
             };
-            var storeRes = await fetch('/capstone/schedules/requests.php',{
+            var storeRes = await fetch('../../schedules/requests.php',{
               method:'POST',
               headers:{ 'Content-Type':'application/json' },
               body: JSON.stringify(payload)
