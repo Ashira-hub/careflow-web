@@ -1,5 +1,6 @@
 <?php $page='Home'; 
 include __DIR__.'/includes/header.php'; ?>
+<link rel="stylesheet" href="./css/style.css">
 
 <section class="hero">
   <div class="container hero-grid">
